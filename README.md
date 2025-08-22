@@ -1,3 +1,4 @@
+
 # c-server-docker
 
 This project provides a Dockerized C server setup. It is designed to run a C-based server application inside a container, making deployment and management easier.

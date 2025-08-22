@@ -7,20 +7,29 @@ RUN apt-get update && apt-get install -y \
     cmake \
     openssl \
     libssl-dev \
+    libcjson-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy the source code and build script
+# Copy all project files into the container
 COPY . .
 
-# Make sure build.sh is executable
-RUN chmod +x build.sh
+RUN ls -l /app
 
-# Build the project
-RUN ./build.sh
+# Create build directory
+RUN mkdir -p build
+
+# Run cmake and make in build directory
+#WORKDIR /app/build
+RUN cd build && \
+    cmake .. && \
+    make
+#RUN cmake .. && make
+# Expose HTTPS port
+EXPOSE 8442
 
 # Default command: run the executable
-CMD ["./build/MyCProject"]
+CMD ["./build/CServerDocker"]

@@ -4,15 +4,21 @@ project(CServerDocker C)
 set(CMAKE_C_STANDARD 23)
 
 
-
 include_directories(
     src/utils
     src/objects
     src/services
-    /opt/homebrew/include
 )
 
-link_directories(/opt/homebrew/lib)
+if(APPLE)
+    include_directories(/opt/homebrew/include)
+    link_directories(/opt/homebrew/lib)
+elseif(UNIX)
+    include_directories(/usr/include)
+    link_directories(/usr/lib)
+endif()
+
+
 
 
 
@@ -21,7 +27,9 @@ add_executable(CServerDocker
     src/utils/math_utils.c
     src/objects/person.c
     src/services/greet_service.c
-    src/services/https_service.c 
+    src/services/frontend_service.c
+    src/services/https_service.c
+    src/services/product_service.c
 )
 
-target_link_libraries(CServerDocker ssl crypto)
+target_link_libraries(CServerDocker ssl crypto cjson)

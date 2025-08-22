@@ -6,11 +6,42 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdlib.h>
 
-#define PORT 8443
+#define PORT 8442
 #define CERT_FILE "server.crt"
 #define KEY_FILE  "server.key"
 
+// --- Router Implementation ---
+typedef struct {
+    char method[8];
+    char path[256];
+    endpoint_handler_t handler;
+} endpoint_t;
+
+#define MAX_ENDPOINTS 32
+static endpoint_t endpoints[MAX_ENDPOINTS];
+static int endpoint_count = 0;
+
+void register_endpoint(const char *method, const char *path, endpoint_handler_t handler) {
+    if (endpoint_count < MAX_ENDPOINTS) {
+        strncpy(endpoints[endpoint_count].method, method, sizeof(endpoints[endpoint_count].method) - 1);
+        strncpy(endpoints[endpoint_count].path, path, sizeof(endpoints[endpoint_count].path) - 1);
+        endpoints[endpoint_count].handler = handler;
+        endpoint_count++;
+    }
+}
+
+static endpoint_handler_t find_handler(const char *method, const char *path) {
+    for (int i = 0; i < endpoint_count; ++i) {
+        if (strcmp(endpoints[i].method, method) == 0 && strcmp(endpoints[i].path, path) == 0) {
+            return endpoints[i].handler;
+        }
+    }
+    return NULL;
+}
+
+// --- Thread/Connection Handling ---
 typedef struct {
     SSL *ssl;
     int client_fd;
@@ -29,10 +60,13 @@ void *handle_client(void *arg) {
         pthread_exit(NULL);
     }
 
-    // Read HTTP request
     char reqbuf[2048];
     int req_len = SSL_read(ssl, reqbuf, sizeof(reqbuf) - 1);
     if (req_len <= 0) {
+        SSL_shutdown(ssl);
+        SSL_free(ssl);
+        close(client);
+        free(cinfo);
         pthread_exit(NULL);
     }
     reqbuf[req_len] = '\0';
@@ -42,70 +76,19 @@ void *handle_client(void *arg) {
     char path[256] = {0};
     sscanf(reqbuf, "%7s %255s", method, path);
 
-    // Only handle GET requests
-    if (strcmp(method, "GET") != 0) {
-        const char *not_allowed =
-            "HTTP/1.1 405 Method Not Allowed\r\n"
+    endpoint_handler_t handler = find_handler(method, path);
+
+    if (handler) {
+        handler(ssl, reqbuf, req_len);
+    } else {
+        // Default: 404
+        const char *not_found =
+            "HTTP/1.1 404 Not Found\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
             "\r\n"
-            "405 Method Not Allowed\n";
-        SSL_write(ssl, not_allowed, strlen(not_allowed));
-    } else {
-        // Map path to file in frontend folder
-        char file_path[512];
-        if (strcmp(path, "/") == 0) {
-            snprintf(file_path, sizeof(file_path), "frontend/index.html");
-        } else {
-            snprintf(file_path, sizeof(file_path), "frontend%s", path);
-        }
-
-        // Determine content type
-        const char *content_type = "text/html";
-        if (strstr(file_path, ".css")) content_type = "text/css";
-        else if (strstr(file_path, ".js")) content_type = "application/javascript";
-        else if (strstr(file_path, ".txt")) content_type = "text/plain";
-
-        FILE *fp = fopen(file_path, "rb");
-        if (!fp) {
-            const char *not_found =
-                "HTTP/1.1 404 Not Found\r\n"
-                "Content-Type: text/plain\r\n"
-                "Connection: close\r\n"
-                "\r\n"
-                "404 Not Found\n";
-            SSL_write(ssl, not_found, strlen(not_found));
-        } else {
-            fseek(fp, 0, SEEK_END);
-            long filesize = ftell(fp);
-            fseek(fp, 0, SEEK_SET);
-            char *filebuf = malloc(filesize + 1);
-            if (filebuf) {
-                fread(filebuf, 1, filesize, fp);
-                filebuf[filesize] = '\0';
-                fclose(fp);
-                char header[256];
-                snprintf(header, sizeof(header),
-                    "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: %s\r\n"
-                    "Content-Length: %ld\r\n"
-                    "Connection: close\r\n"
-                    "\r\n",
-                    content_type, filesize);
-                SSL_write(ssl, header, strlen(header));
-                SSL_write(ssl, filebuf, filesize);
-                free(filebuf);
-            } else {
-                fclose(fp);
-                const char *server_error =
-                    "HTTP/1.1 500 Internal Server Error\r\n"
-                    "Content-Type: text/plain\r\n"
-                    "Connection: close\r\n"
-                    "\r\n"
-                    "500 Internal Server Error\n";
-                SSL_write(ssl, server_error, strlen(server_error));
-            }
-        }
+            "404 Not Found\n";
+        SSL_write(ssl, not_found, strlen(not_found));
     }
 
     SSL_shutdown(ssl);
@@ -114,6 +97,7 @@ void *handle_client(void *arg) {
     free(cinfo);
     pthread_exit(NULL);
 }
+
 
 void start_https_server() {
     SSL_library_init();
