@@ -29,45 +29,82 @@ void *handle_client(void *arg) {
         pthread_exit(NULL);
     }
 
-    // Serve frontend/index.html as the response
-    FILE *fp = fopen("frontend/index.html", "rb");
-    if (!fp) {
-        const char *not_found =
-            "HTTP/1.1 404 Not Found\r\n"
+    // Read HTTP request
+    char reqbuf[2048];
+    int req_len = SSL_read(ssl, reqbuf, sizeof(reqbuf) - 1);
+    if (req_len <= 0) {
+        pthread_exit(NULL);
+    }
+    reqbuf[req_len] = '\0';
+
+    // Parse method and path
+    char method[8] = {0};
+    char path[256] = {0};
+    sscanf(reqbuf, "%7s %255s", method, path);
+
+    // Only handle GET requests
+    if (strcmp(method, "GET") != 0) {
+        const char *not_allowed =
+            "HTTP/1.1 405 Method Not Allowed\r\n"
             "Content-Type: text/plain\r\n"
             "Connection: close\r\n"
             "\r\n"
-            "404 Not Found\n";
-        SSL_write(ssl, not_found, strlen(not_found));
+            "405 Method Not Allowed\n";
+        SSL_write(ssl, not_allowed, strlen(not_allowed));
     } else {
-        fseek(fp, 0, SEEK_END);
-        long filesize = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
-        char *html = malloc(filesize + 1);
-        if (html) {
-            fread(html, 1, filesize, fp);
-            html[filesize] = '\0';
-            fclose(fp);
-            char header[256];
-            snprintf(header, sizeof(header),
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Type: text/html\r\n"
-                "Content-Length: %ld\r\n"
-                "Connection: close\r\n"
-                "\r\n",
-                filesize);
-            SSL_write(ssl, header, strlen(header));
-            SSL_write(ssl, html, filesize);
-            free(html);
+        // Map path to file in frontend folder
+        char file_path[512];
+        if (strcmp(path, "/") == 0) {
+            snprintf(file_path, sizeof(file_path), "frontend/index.html");
         } else {
-            fclose(fp);
-            const char *server_error =
-                "HTTP/1.1 500 Internal Server Error\r\n"
+            snprintf(file_path, sizeof(file_path), "frontend%s", path);
+        }
+
+        // Determine content type
+        const char *content_type = "text/html";
+        if (strstr(file_path, ".css")) content_type = "text/css";
+        else if (strstr(file_path, ".js")) content_type = "application/javascript";
+        else if (strstr(file_path, ".txt")) content_type = "text/plain";
+
+        FILE *fp = fopen(file_path, "rb");
+        if (!fp) {
+            const char *not_found =
+                "HTTP/1.1 404 Not Found\r\n"
                 "Content-Type: text/plain\r\n"
                 "Connection: close\r\n"
                 "\r\n"
-                "500 Internal Server Error\n";
-            SSL_write(ssl, server_error, strlen(server_error));
+                "404 Not Found\n";
+            SSL_write(ssl, not_found, strlen(not_found));
+        } else {
+            fseek(fp, 0, SEEK_END);
+            long filesize = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+            char *filebuf = malloc(filesize + 1);
+            if (filebuf) {
+                fread(filebuf, 1, filesize, fp);
+                filebuf[filesize] = '\0';
+                fclose(fp);
+                char header[256];
+                snprintf(header, sizeof(header),
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: %s\r\n"
+                    "Content-Length: %ld\r\n"
+                    "Connection: close\r\n"
+                    "\r\n",
+                    content_type, filesize);
+                SSL_write(ssl, header, strlen(header));
+                SSL_write(ssl, filebuf, filesize);
+                free(filebuf);
+            } else {
+                fclose(fp);
+                const char *server_error =
+                    "HTTP/1.1 500 Internal Server Error\r\n"
+                    "Content-Type: text/plain\r\n"
+                    "Connection: close\r\n"
+                    "\r\n"
+                    "500 Internal Server Error\n";
+                SSL_write(ssl, server_error, strlen(server_error));
+            }
         }
     }
 
