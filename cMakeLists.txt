@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.10)
+project(CServerDocker C)
+
+set(CMAKE_C_STANDARD 23)
+
+
+
+include_directories(
+    src/utils
+    src/objects
+    src/services
+    /opt/homebrew/include
+)
+
+link_directories(/opt/homebrew/lib)
+
+
+
+add_executable(CServerDocker
+    src/main/main.c
+    src/utils/math_utils.c
+    src/objects/person.c
+    src/services/greet_service.c
+    src/services/https_service.c 
+)
+
+target_link_libraries(CServerDocker ssl crypto)
