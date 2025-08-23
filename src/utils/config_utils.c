@@ -43,3 +43,8 @@ void free_config() {
         config = NULL;
     }
 }
+
+const struct ConfigService config_service = {
+    .get_config = get_config,
+    .free_config = free_config
+};

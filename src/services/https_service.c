@@ -113,7 +113,7 @@ void start_https_server() {
     server_config.cert_file = DEFAULT_CERT_FILE;
     server_config.key_file = DEFAULT_KEY_FILE;
 
-    cJSON *config = get_config();
+    cJSON *config = config_service.get_config();
     if (config != NULL) {
         cJSON *port_item = cJSON_GetObjectItem(config, "PORT");
         cJSON *cert_item = cJSON_GetObjectItem(config, "CERT_FILE");
@@ -210,6 +210,7 @@ void start_https_server() {
         pthread_detach(tid); // Automatically reclaim thread resources
     }
 
+    config_service.free_config();
     close(sockfd);
     SSL_CTX_free(ctx);
     EVP_cleanup();

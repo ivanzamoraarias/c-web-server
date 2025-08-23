@@ -3,10 +3,11 @@
 
 #include "cjson/cJSON.h"
 
-// Returns a pointer to the loaded config cJSON object (singleton)
-cJSON *get_config();
+struct ConfigService {
+    cJSON *(*get_config)();
+    void (*free_config)();
+};
 
-// Frees the config object from memory (call at program exit)
-void free_config();
+extern const struct ConfigService config_service;
 
 #endif // CONFIG_UTILS_H
