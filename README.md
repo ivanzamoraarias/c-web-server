@@ -1,13 +1,15 @@
 
 # c-server-docker
 
-This project provides a Dockerized C server setup. It is designed to run a C-based server application inside a container, making deployment and management easier.
+This project provides a Dockerized C server setup. It allows you to run a C-based server application inside a container for simplified deployment and management.
 
 ## Features
 
 - Containerized C server for easy deployment
 - Simple configuration and setup
-- Supports SSL/TLS certificates for secure communication
+- SSL/TLS support for secure communication
+- Hot-reload support for server code changes
+- Customizable environment variables for configuration
 
 ## Getting Started
 
@@ -26,24 +28,38 @@ This project provides a Dockerized C server setup. It is designed to run a C-bas
     ```bash
     docker build -t c-server .
     ```
-3. Run the container:
+3. Run the container (using environment variables for configuration):
     ```bash
-    docker run -d -p 443:443 c-server
+    docker run -d \
+      -p 443:443 \
+      -e SERVER_PORT=443 \
+      -e CERT_PATH=/certs/server.crt \
+      -e KEY_PATH=/certs/server.key \
+      -v $(pwd)/certs:/certs:ro \
+      c-server
     ```
 
 ## Adding Certificates
 
-To enable SSL/TLS, you need to add your certificate and key files:
+To enable SSL/TLS, add your certificate and key files:
 
 1. Place your certificate (`server.crt`) and private key (`server.key`) in the `certs/` directory.
-2. Update the server configuration (if needed) to point to these files.
-3. Rebuild the Docker image to include the certificates:
+2. Ensure the Docker run command mounts the `certs/` directory and sets the correct environment variables.
+3. Rebuild the Docker image if you update any server code:
     ```bash
     docker build -t c-server .
     ```
 4. Start the container as shown above.
 
-**Note:** Make sure your certificate and key files are valid and match your domain/server requirements.
+**Note:** Ensure your certificate and key files are valid and match your domain/server requirements.
+
+## Configuration
+
+You can customize the server using environment variables:
+
+- `SERVER_PORT`: Port for the server to listen on (default: 443)
+- `CERT_PATH`: Path to the SSL certificate file
+- `KEY_PATH`: Path to the SSL private key file
 
 ## License
 

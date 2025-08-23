@@ -1,0 +1,5 @@
+{
+  "PORT": 443,
+  "CERT_FILE": "server.crt",
+  "KEY_FILE": "server.key"
+}

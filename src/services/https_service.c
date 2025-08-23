@@ -7,10 +7,12 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <cjson/cJSON.h>
+#include "../utils/config_utils.h"
 
-#define PORT 8442
-#define CERT_FILE "server.crt"
-#define KEY_FILE  "server.key"
+#define DEFAULT_PORT 8442
+#define DEFAULT_CERT_FILE "server.crt"
+#define DEFAULT_KEY_FILE  "server.key"
 
 // --- Router Implementation ---
 typedef struct {
@@ -98,8 +100,37 @@ void *handle_client(void *arg) {
     pthread_exit(NULL);
 }
 
+typedef struct {
+    int port;
+    const char *cert_file;
+    const char *key_file;
+} Config;   
 
 void start_https_server() {
+
+    Config server_config;
+    server_config.port = DEFAULT_PORT;
+    server_config.cert_file = DEFAULT_CERT_FILE;
+    server_config.key_file = DEFAULT_KEY_FILE;
+
+    cJSON *config = get_config();
+    if (config != NULL) {
+        cJSON *port_item = cJSON_GetObjectItem(config, "PORT");
+        cJSON *cert_item = cJSON_GetObjectItem(config, "CERT_FILE");
+        cJSON *key_item = cJSON_GetObjectItem(config, "KEY_FILE");
+
+        if (port_item && cJSON_IsNumber(port_item))
+            server_config.port = port_item->valueint;
+        if (cert_item && cJSON_IsString(cert_item))
+            server_config.cert_file = cert_item->valuestring;
+        if (key_item && cJSON_IsString(key_item))
+            server_config.key_file = key_item->valuestring;
+    }
+
+
+
+   
+
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
@@ -110,8 +141,8 @@ void start_https_server() {
         return;
     }
 
-    if (SSL_CTX_use_certificate_file(ctx, CERT_FILE, SSL_FILETYPE_PEM) <= 0 ||
-        SSL_CTX_use_PrivateKey_file(ctx, KEY_FILE, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_certificate_file(ctx, server_config.cert_file, SSL_FILETYPE_PEM) <= 0 ||
+        SSL_CTX_use_PrivateKey_file(ctx, server_config.key_file, SSL_FILETYPE_PEM) <= 0) {
         fprintf(stderr, "Error setting up cert/key\n");
         SSL_CTX_free(ctx);
         return;
@@ -127,7 +158,7 @@ void start_https_server() {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(PORT);
+    addr.sin_port = htons(server_config.port);
     addr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
@@ -144,7 +175,7 @@ void start_https_server() {
         return;
     }
 
-    printf("HTTPS server running on port %d\n", PORT);
+    printf("HTTPS server running on port %d\n", server_config.port);
 
     while (1) {
         struct sockaddr_in client_addr;

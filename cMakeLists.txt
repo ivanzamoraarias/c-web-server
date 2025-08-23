@@ -25,6 +25,7 @@ endif()
 add_executable(CServerDocker
     src/main/main.c
     src/utils/math_utils.c
+    src/utils/config_utils.c
     src/objects/person.c
     src/services/greet_service.c
     src/services/frontend_service.c
