@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libcjson-dev \
     ca-certificates \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

@@ -1,27 +1,32 @@
 cmake_minimum_required(VERSION 3.10)
 project(CServerDocker C)
 
+# Use C17 for stability (C23 optional, but less supported)
 set(CMAKE_C_STANDARD 23)
 
-
+# Include directories
 include_directories(
     src/utils
     src/objects
     src/services
 )
 
+# Platform-specific includes & libraries
 if(APPLE)
-    include_directories(/opt/homebrew/include)
-    link_directories(/opt/homebrew/lib)
+    include_directories(
+        /opt/homebrew/include
+        /opt/homebrew/opt/libpq/include
+    )
+    link_directories(
+        /opt/homebrew/lib
+        /opt/homebrew/opt/libpq/lib
+    )
 elseif(UNIX)
     include_directories(/usr/include)
     link_directories(/usr/lib)
 endif()
 
-
-
-
-
+# Source files
 add_executable(CServerDocker
     src/main/main.c
     src/utils/math_utils.c
@@ -33,4 +38,11 @@ add_executable(CServerDocker
     src/services/product_service.c
 )
 
-target_link_libraries(CServerDocker ssl crypto cjson)
+# Link libraries
+target_link_libraries(CServerDocker
+    PRIVATE
+        pq        # PostgreSQL client lib
+        ssl       # OpenSSL
+        crypto    # OpenSSL crypto
+        cjson     # cJSON library
+)

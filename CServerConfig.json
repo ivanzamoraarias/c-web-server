@@ -1,5 +1,12 @@
 {
   "PORT": 443,
   "CERT_FILE": "server.crt",
-  "KEY_FILE": "server.key"
+  "KEY_FILE": "server.key",
+  "POSTGRESQL": {
+    "USER": "postgres",
+    "PASSWORD": "secret",
+    "DBNAME": "mydb",
+    "HOST": "localhost",
+    "PORT": 5432
+  }
 }
