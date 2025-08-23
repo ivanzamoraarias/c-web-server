@@ -47,3 +47,7 @@ int handle_get_product(SSL *ssl, const char *request, int request_len) {
     free(json_str);
     return 0;
 }
+
+const struct ProductService product_service = {
+    .handle_get_product = handle_get_product
+};

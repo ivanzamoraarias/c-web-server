@@ -81,3 +81,7 @@ int serve_frontend(SSL *ssl, const char *reqbuf, int req_len) {
 
     return 0;
 }
+
+const struct FrontendService frontend_service = {
+    .serve_frontend = serve_frontend
+};

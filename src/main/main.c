@@ -12,10 +12,10 @@ int main() {
     int sum = add(5, 7);
     printf("Sum: %d\n", sum);
 
-    register_endpoint("GET", "/", serve_frontend); // homepage           // Loads frontend/index.html
-    register_endpoint("GET", "/style.css", serve_frontend);    // Loads frontend/style.css
-    register_endpoint("GET", "/index.js", serve_frontend);     // Loads frontend/index.js
-    register_endpoint("GET", "/product", handle_get_product); // Returns product list JSON
+    register_endpoint("GET", "/", frontend_service.serve_frontend); // homepage           // Loads frontend/index.html
+    register_endpoint("GET", "/style.css", frontend_service.serve_frontend);    // Loads frontend/style.css
+    register_endpoint("GET", "/index.js", frontend_service.serve_frontend);     // Loads frontend/index.js
+    register_endpoint("GET", "/product", product_service.handle_get_product); // Returns product list JSON
     start_https_server();
     return 0;
 }

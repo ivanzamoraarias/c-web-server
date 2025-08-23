@@ -2,5 +2,10 @@
 
 #include <openssl/ssl.h>
 
-// Handler for GET /products
-int handle_get_product(SSL *ssl, const char *request, int request_len);
+struct ProductService
+{
+    int (*handle_get_product)(SSL *ssl, const char *request, int request_len);
+    
+};
+
+extern const struct ProductService product_service;
