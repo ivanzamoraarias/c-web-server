@@ -17,7 +17,7 @@ int main() {
     register_endpoint("GET", "/style.css", frontend_service.serve_frontend);    // Loads frontend/style.css
     register_endpoint("GET", "/index.js", frontend_service.serve_frontend);     // Loads frontend/index.js
     register_endpoint("GET", "/product", product_service.handle_get_product); // Returns product list JSON
-    register_endpoint("POST", "/graphql", graphql_service.handle_graphql); // GraphQL endpoint
+    //register_endpoint("POST", "/graphql", graphql_service.handle_graphql); // GraphQL endpoint
     start_https_server();
     return 0;
 }
