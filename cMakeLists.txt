@@ -36,6 +36,7 @@ add_executable(CServerDocker
     src/services/frontend_service.c
     src/services/https_service.c
     src/services/product_service.c
+    src/services/graphql_service.c
 )
 
 # Link libraries
