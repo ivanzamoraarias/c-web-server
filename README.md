@@ -1,4 +1,4 @@
-
+more info and more projects: https://fizagameengines.blogspot.com/
 # c-server-docker
 
 This project provides a Dockerized C server setup for easy deployment and management. The server supports SSL/TLS, hot-reload, and flexible configuration via environment variables.
